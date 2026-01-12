@@ -503,6 +503,7 @@ namespace vMenuClient.menus
             foreach (var weapon in ValidWeapons.WeaponList)
             {
                 if (!ValidWeapons.weaponNames.ContainsKey(weapon.SpawnName)) continue;
+
                 var cat = (uint)GetWeapontypeGroup(weapon.Hash);
                 if (!string.IsNullOrEmpty(weapon.Name) && IsAllowed(weapon.Perm))
                 {

@@ -64,7 +64,9 @@ namespace vMenuClient.data
         {
             get
             {
-                if (_weaponsList.Count == weaponNames.Count - 1)
+                // Note: We changed the check here to only return if empty, 
+                // because checking against weaponNames.Count is inaccurate now that we have dynamic addons.
+                if (_weaponsList.Count > 0)
                 {
                     return _weaponsList;
                 }
@@ -103,6 +105,8 @@ namespace vMenuClient.data
         private static void CreateWeaponsList()
         {
             _weaponsList.Clear();
+
+            // 1. ADD STANDARD HARDCODED WEAPONS
             foreach (var weapon in weaponNames)
             {
                 var realName = weapon.Key;
@@ -136,6 +140,63 @@ namespace vMenuClient.data
                 {
                     _weaponsList.Add(vw);
                 }
+            }
+
+            // 2. ADD DYNAMIC ADDON WEAPONS
+            try
+            {
+                var addonsContent = LoadResourceFile(GetCurrentResourceName(), "config/addons.json") ?? "{}";
+                var addonsFile = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(addonsContent);
+
+                if (addonsFile != null && addonsFile.TryGetValue("weapons", out var addonWeapons))
+                {
+                    foreach (var addonSpawnName in addonWeapons)
+                    {
+                        if (string.IsNullOrWhiteSpace(addonSpawnName)) continue;
+
+                        var hash = (uint)GetHashKey(addonSpawnName);
+
+                        var componentHashes = new Dictionary<string, uint>();
+                        var weaponComponents = GetWeaponComponents();
+                        var weaponComponentKeys = weaponComponents.Keys;
+
+                        foreach (var comp in weaponComponentKeys)
+                        {
+                            var componentHash = (uint)GetHashKey(comp);
+                            // Only add the component if the game says this weapon supports it
+                            if (DoesWeaponTakeWeaponComponent(hash, componentHash))
+                            {
+                                var componentName = weaponComponents[comp];
+                                if (!componentHashes.ContainsKey(componentName))
+                                {
+                                    componentHashes[componentName] = componentHash;
+                                }
+                            }
+                        }
+
+                        // Since we don't know the AddTextEntry key, we just use the spawn name as the display name.
+                        string displayName = addonSpawnName;
+
+                        var vw = new ValidWeapon
+                        {
+                            Hash = hash,
+                            SpawnName = addonSpawnName,
+                            Name = displayName,
+                            Components = componentHashes,
+                            // We use WPUnarmed as a "Safe" fallback permission that usually allows usage. So we don't need to make a new permission for every addon weapon.
+                            Perm = Permission.WPUnarmed
+                        };
+
+                        if (!_weaponsList.Contains(vw))
+                        {
+                            _weaponsList.Add(vw);
+                        }
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                Log("[WARNING] The addons.json contains invalid JSON (Weapon loading).");
             }
         }
 
