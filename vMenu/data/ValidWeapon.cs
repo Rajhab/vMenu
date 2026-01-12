@@ -101,7 +101,6 @@ namespace vMenuClient.data
             }
             return _components;
         }
-
         private static void CreateWeaponsList()
         {
             _weaponsList.Clear();

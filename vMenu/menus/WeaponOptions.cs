@@ -895,7 +895,6 @@ namespace vMenuClient.menus
             addonWeaponsMenu.OnMenuOpen += (sender) => { OnIndexChange(sender, sender.GetCurrentMenuItem()); };
         }
 
-
         #endregion
 
         /// <summary>
